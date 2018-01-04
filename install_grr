@@ -1,0 +1,81 @@
+#!/bin/bash
+. /usr/sbin/so-common
+
+# Clone repo
+header "Cloning repo..."
+[ -d $HOME/securityonion-grr ] && rm -rf $HOME/securityonion-grr
+
+git clone https://github.com/weslambert/securityonion-grr
+
+# Create GRR dir
+[ -d $HOME/grr ] && rm -rf $HOME/grr
+mkdir $HOME/grr
+
+header "Copying web config..."
+cp -av securityonion-grr/grr.conf /etc/apache2/sites-available/grr.conf
+echo
+
+# If 000-securityonion.conf does not exist, create it
+if [ ! -f /etc/apache2/sites-available/000-securityonion.conf ]; then
+	cp /etc/apache2/sites-available/securityonion.conf /etc/apache2/sites-available/000-securityonion.conf
+	a2ensite 000-securityonion.conf
+fi
+
+# Get domain
+echo "Please specify a domain to use to access GRR (Example: grr.example.com) and press [ENTER]:"
+read DOMAIN_NAME
+
+# Enable GRR site
+header "Enabling site..."
+sed -i "s/grr.example.com/$DOMAIN_NAME/" /etc/apache2/sites-available/grr.conf
+a2ensite grr.conf
+echo
+
+# Add entry in /etc/hosts
+echo "127.0.0.1    $DOMAIN_NAME"
+
+# Restart Apache
+header "Restarting Apache..."
+echo
+service apache2 restart
+  
+# Pull Docker container
+header "Pulling container from Docker Hub..."
+docker pull grrdocker/grr:latest && \
+echo
+
+# Run Docker container
+header "Starting Docker container..."
+if docker ps -a | grep so-grr > /dev/null; then
+        docker stop so-grr
+        docker ps -a | grep "so-grr" | awk '{print $1}' | xargs docker rm
+fi
+
+docker run -dit --name so-grr grrdocker/grr:latest /bin/bash &&\
+docker cp so-grr:/usr/share/grr-server/install_data/etc $HOME/grr && \
+docker stop so-grr && docker rm so-grr
+echo
+echo "Please provide external IP address of host on which GRR will be installed."
+echo "This IP address is necessary, as it tells clients what host they should poll."
+echo 
+echo "In most cases, this is the same IP address as the host."
+echo 
+echo "Please press the [ENTER] key when you are finished."
+read HOST
+echo
+
+docker run  -d --name so-grr   -e EXTERNAL_HOSTNAME="$HOST"   -e ADMIN_PASSWORD="demo"   --ulimit nofile=1048576:1048576   -p 0.0.0.0:8000:8000 -p 127.0.0.1:8080:8080 -v $HOME/grr/etc:/usr/share/grr-server/install_data/etc -v $HOME/grr/datastore:/usr/share/grr-server/lib/python2.7/site-packages/grr/var/grr-datastore  grrdocker/grr:latest grr
+
+echo "Sleeping 60 seconds to allow configuration to complete..."
+sleep 60s
+
+echo "Stopping container and restarting with different params..."
+docker stop so-grr && docker rm so-grr
+
+docker run  -d --name so-grr --restart unless-stopped -e EXTERNAL_HOSTNAME="$HOST" --ulimit nofile=1048576:1048576   -p 0.0.0.0:8000:8000 -p 127.0.0.1:8080:8080 -v $HOME/grr/etc:/usr/share/grr-server/install_data/etc -v $HOME/grr/datastore:/usr/share/grr-server/lib/python2.7/site-packages/grr/var/grr-datastore  grrdocker/grr:latest grr
+
+echo "Done!"
+echo
+echo "You should now be able to access GRR at https://$DOMAIN_NAME from an analyst machine, provided you are allowed port 443 access."
+echo "Clients will now poll to $HOST:8080, so you please make sure to allow this port for known connections."
+echo
