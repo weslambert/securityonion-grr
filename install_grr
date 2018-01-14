@@ -64,7 +64,7 @@ echo "Please press the [ENTER] key when you are finished."
 read HOST
 echo
 
-docker run  -d --name so-grr   -e EXTERNAL_HOSTNAME="$HOST"   -e ADMIN_PASSWORD="demo"   --ulimit nofile=1048576:1048576   -p 0.0.0.0:8000:8000 -p 127.0.0.1:8080:8080 -v $HOME/grr/etc:/usr/share/grr-server/install_data/etc -v $HOME/grr/datastore:/usr/share/grr-server/lib/python2.7/site-packages/grr/var/grr-datastore  grrdocker/grr:latest grr
+docker run  -d --name so-grr   -e EXTERNAL_HOSTNAME="$HOST"   -e ADMIN_PASSWORD="demo"   --ulimit nofile=1048576:1048576   -p 0.0.0.0:8000:8000 -p 8080:8080 -v $HOME/grr/etc:/usr/share/grr-server/install_data/etc -v $HOME/grr/datastore:/usr/share/grr-server/lib/python2.7/site-packages/grr/var/grr-datastore  grrdocker/grr:latest grr
 
 echo "Sleeping 60 seconds to allow configuration to complete..."
 sleep 60s
@@ -72,10 +72,17 @@ sleep 60s
 echo "Stopping container and restarting with different params..."
 docker stop so-grr && docker rm so-grr
 
-docker run  -d --name so-grr --restart unless-stopped -e EXTERNAL_HOSTNAME="$HOST" --ulimit nofile=1048576:1048576   -p 0.0.0.0:8000:8000 -p 127.0.0.1:8080:8080 -v $HOME/grr/etc:/usr/share/grr-server/install_data/etc -v $HOME/grr/datastore:/usr/share/grr-server/lib/python2.7/site-packages/grr/var/grr-datastore  grrdocker/grr:latest grr
+docker run  -d --name so-grr --restart unless-stopped -e EXTERNAL_HOSTNAME="$HOST" --ulimit nofile=1048576:1048576   -p 0.0.0.0:8000:8000 -p 8080:8080 -v $HOME/grr/etc:/usr/share/grr-server/install_data/etc -v $HOME/grr/datastore:/usr/share/grr-server/lib/python2.7/site-packages/grr/var/grr-datastore  grrdocker/grr:latest grr
 
 echo "Done!"
 echo
 echo "You should now be able to access GRR at https://$DOMAIN_NAME from an analyst machine, provided you are allowed port 443 access."
+echo 
 echo "Clients will now poll to $HOST:8080, so you please make sure to allow this port for known connections."
 echo
+echo "You can add a firewall rule for a client by issuing a command similar to the following:"
+echo
+echo "sudo iptables -I DOCKER-USER ! -i docker0 -o docker0 -s CLIENT_IP -p tcp --dport 8080 -j ACCEPT"
+echo
+
+
