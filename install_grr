@@ -41,7 +41,7 @@ service apache2 restart
   
 # Pull Docker container
 header "Pulling container from Docker Hub..."
-docker pull grrdocker/grr:latest && \
+docker pull grrdocker/grr:v3.2.2.0 && \
 echo
 
 # Run Docker container
@@ -51,7 +51,7 @@ if docker ps -a | grep so-grr > /dev/null; then
         docker ps -a | grep "so-grr" | awk '{print $1}' | xargs docker rm
 fi
 
-docker run -dit --name so-grr grrdocker/grr:latest /bin/bash &&\
+docker run -dit --name so-grr grrdocker/grr:v3.2.2.0 /bin/bash &&\
 docker cp so-grr:/usr/share/grr-server/install_data/etc $HOME/grr && \
 docker stop so-grr && docker rm so-grr
 echo
@@ -64,7 +64,7 @@ echo "Please press the [ENTER] key when you are finished."
 read HOST
 echo
 
-docker run  -d --name so-grr   -e EXTERNAL_HOSTNAME="$HOST"   -e ADMIN_PASSWORD="demo"   --ulimit nofile=1048576:1048576   -p 0.0.0.0:8000:8000 -p 8080:8080 -v $HOME/grr/etc:/usr/share/grr-server/install_data/etc -v $HOME/grr/datastore:/usr/share/grr-server/lib/python2.7/site-packages/grr/var/grr-datastore  grrdocker/grr:latest grr
+docker run  -d --name so-grr   -e EXTERNAL_HOSTNAME="$HOST"   -e ADMIN_PASSWORD="demo"   --ulimit nofile=1048576:1048576   -p 0.0.0.0:8000:8000 -p 8080:8080 -v $HOME/grr/etc:/usr/share/grr-server/install_data/etc -v $HOME/grr/datastore:/usr/share/grr-server/lib/python2.7/site-packages/grr/var/grr-datastore  grrdocker/grr:v3.2.2.0 grr
 
 echo "Sleeping 60 seconds to allow configuration to complete..."
 sleep 60s
@@ -72,7 +72,7 @@ sleep 60s
 echo "Stopping container and restarting with different params..."
 docker stop so-grr && docker rm so-grr
 
-docker run  -d --name so-grr --restart unless-stopped -e EXTERNAL_HOSTNAME="$HOST" --ulimit nofile=1048576:1048576   -p 0.0.0.0:8000:8000 -p 8080:8080 -v $HOME/grr/etc:/usr/share/grr-server/install_data/etc -v $HOME/grr/datastore:/usr/share/grr-server/lib/python2.7/site-packages/grr/var/grr-datastore  grrdocker/grr:latest grr
+docker run  -d --name so-grr --restart unless-stopped -e EXTERNAL_HOSTNAME="$HOST" --ulimit nofile=1048576:1048576   -p 0.0.0.0:8000:8000 -p 8080:8080 -v $HOME/grr/etc:/usr/share/grr-server/install_data/etc -v $HOME/grr/datastore:/usr/share/grr-server/lib/python2.7/site-packages/grr/var/grr-datastore  grrdocker/grr:v3.2.2.0 grr
 
 echo "Done!"
 echo
